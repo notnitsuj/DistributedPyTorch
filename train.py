@@ -10,7 +10,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader, random_split
-from tqdm import tqdm
 
 from utils.dataloading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
@@ -20,7 +19,6 @@ from model import UNet
 
 dir_img = Path('./data/imgs/')
 dir_mask = Path('./data/masks/')
-dir_checkpoint = Path('./checkpoints/')
 
 
 def get_args():
@@ -61,24 +59,21 @@ def fit(model, device, epochs: int = 10, batch_size: int = 4, learning_rate: flo
         model.train()
         epoch_loss = 0
 
-        with tqdm(total=n_train, desc=f'Epoch {epoch+1}/{epochs}', units='images') as pbar:
-            for batch in train_loader:
-                images = batch['image'].to(device=device, dtype=torch.float32)
-                true_masks = batch['mask'].to(device=device, dtype=torch.long)
+        for batch in train_loader:
+            images = batch['image'].to(device=device, dtype=torch.float32)
+            true_masks = batch['mask'].to(device=device, dtype=torch.long)
 
-                pred_masks = model(images)
-                loss = criterion(pred_masks, true_masks) + dice_loss(F.softmax(pred_masks, dim=1).float(),
-                        F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(), multiclass=True)
-                
-                optimizer.zero_grad(set_to_none=True)
-                pbar.update(images.shape[0])
-                global_step += 1
-                epoch_loss += loss.item()
-                optimizer.step()
+            pred_masks = model(images)
+            loss = criterion(pred_masks, true_masks) + dice_loss(F.softmax(pred_masks, dim=1).float(),
+                    F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(), multiclass=True)
+            
+            optimizer.zero_grad(set_to_none=True)
+            global_step += 1
+            epoch_loss += loss.item()
+            optimizer.step()
 
-                if global_step % 100 == 0:
-                    logging.info(f'At step {global_step}, the training loss is {loss.item()}.')
-                pbar.set_postfix(**{'Loss (batch)': loss.item()})
+            if global_step % 100 == 0:
+                logging.info(f'At step {global_step}, the training loss is {loss.item()}.')
 
         # Evaluate
         val_score = evaluate(model, dataloader=val_loader, device=device)
@@ -100,8 +95,8 @@ if __name__ == '__main__':
         model = UNet().to(device)
         try:
             fit(model, device=device, epochs=10, batch_size=4, learning_rate=1e-4, val_percent=0.1, newsize=[960, 460])
-            torch.save(model.state_dict(), './checkpoint/'+args.train_method+'.pth')
+            torch.save(model.state_dict(), './checkpoints/'+args.train_method+'.pth')
         except:
-            torch.save(model.state_dict(), 'INTERRUPTED.pth')
-            logging.info('Saved interrupt')
+            torch.save(model.state_dict(), './checkpoints/INTERRUPTED.pth')
+            logging.info('Interrupt saved')
             sys.exit(0)
