@@ -4,6 +4,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from tqdm.auto import tqdm
 
 import torch
 import torch.nn as nn
@@ -35,8 +36,10 @@ def fit(model, device, epochs: int = 10, batch_size: int = 4, learning_rate: flo
     # 1. Create dataset
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, newsize)
+        logging.info(f'Carvana Dataset')
     except (AssertionError, RuntimeError):
         dataset = BasicDataset(dir_img, dir_mask, newsize)
+        logging.info(f'Basic Dataset')
 
     # 2. Split into train/validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -59,26 +62,31 @@ def fit(model, device, epochs: int = 10, batch_size: int = 4, learning_rate: flo
         model.train()
         epoch_loss = 0
 
-        for batch in train_loader:
-            images = batch['image'].to(device=device, dtype=torch.float32)
-            true_masks = batch['mask'].to(device=device, dtype=torch.long)
+        with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
+            for batch in train_loader:
+                images = batch['image'].to(device=device, dtype=torch.float32)
+                true_masks = batch['mask'].to(device=device, dtype=torch.long)
 
-            pred_masks = model(images)
-            loss = criterion(pred_masks, true_masks) + dice_loss(F.softmax(pred_masks, dim=1).float(),
-                    F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(), multiclass=True)
-            
-            optimizer.zero_grad(set_to_none=True)
-            global_step += 1
-            epoch_loss += loss.item()
-            optimizer.step()
+                pred_masks = model(images)
+                loss = criterion(pred_masks, true_masks) + dice_loss(F.softmax(pred_masks, dim=1).float(),
+                        F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(), multiclass=True)
+                
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
 
-            if global_step % 100 == 0:
-                logging.info(f'At step {global_step}, the training loss is {loss.item()}.')
+                pbar.update(images.shape[0])
+                global_step += 1
+                epoch_loss += loss.item()   
 
-        # Evaluate
-        val_score = evaluate(model, dataloader=val_loader, device=device)
-        logging.info(f'Validation dice score after epoch {epoch+1} is {val_score}')
-        scheduler.step(val_score)
+                if global_step % 100 == 0:
+                    logging.info(f'At step {global_step}, the training loss is {loss.item()}.')
+
+                if global_step % 50 == 0:
+                    # Evaluate
+                    val_score = evaluate(model, dataloader=val_loader, device=device)
+                    logging.info(f'Validation dice score after epoch {epoch+1} is {val_score}')
+                    scheduler.step(val_score)
 
 
 if __name__ == '__main__':

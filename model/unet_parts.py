@@ -7,9 +7,9 @@ class conv_block(nn.Module):
     def __init__(self, insize, outsize):
         super().__init__()
         self.conv_block = nn.Sequential(
-            nn.Conv2d(insize, outsize, 3),
+            nn.Conv2d(insize, outsize, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(outsize, outsize, 3),
+            nn.Conv2d(outsize, outsize, kernel_size=3, padding=1),
             nn.ReLU()
         )
     
