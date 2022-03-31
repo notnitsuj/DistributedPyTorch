@@ -4,8 +4,6 @@ from .unet_parts import *
 class UNet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.n_classes = 2
-
         self.encoder = Encoder()
         self.mid = conv_block(256, 512)
         self.decoder = Decoder()
