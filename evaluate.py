@@ -3,15 +3,15 @@ import torch
 from tqdm import tqdm
 
 
-def evaluate(model, dataloader, criterion, device):
+def evaluate(model, dataloader, criterion):
     model.eval()
     num_val_batches = len(dataloader)
     losses = []
 
     # Iterate over the validation set
     for batch in tqdm(dataloader, total=num_val_batches, desc='Validation round', unit='batch'):
-        images = batch['image'].to(device=device, dtype=torch.float32)
-        true_masks = batch['mask'].to(device=device, dtype=torch.float32)
+        images = batch['image'].cuda().dtype(torch.float32)
+        true_masks = batch['mask'].cuda().dtype(torch.float32)
 
         with torch.no_grad():
           pred_masks = model(images)
