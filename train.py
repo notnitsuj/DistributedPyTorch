@@ -11,7 +11,7 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 
 from utils.dataloading import BasicDataset, CarvanaDataset
-from utils.utils import Loss
+from utils.utils import Loss, set_seed
 from evaluate import evaluate
 from model import UNet
 
@@ -102,6 +102,7 @@ def fit(model, device, criterion, epochs: int = 10, batch_size: int = 4, learnin
 
 if __name__ == '__main__':
     args = get_args()
+    set_seed(42)
 
     logging.basicConfig(filename='./logs/'+args.train_method+'.log', filemode='a', 
                         level=logging.INFO, format='%(levelname)s: %(message)s')

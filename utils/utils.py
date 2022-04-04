@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import random
+import os
+import numpy as np
 
 
 class Loss:
@@ -20,6 +23,17 @@ class Loss:
             loss -= torch.log(2 * intersection / union)
 
         return loss
+
+
+def set_seed(seed: int):
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
+
 
 def plot_img_and_mask(img, mask):
     classes = mask.shape[0] if len(mask.shape) > 2 else 1
