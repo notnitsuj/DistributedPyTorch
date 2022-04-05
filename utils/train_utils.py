@@ -19,11 +19,12 @@ dir_img = Path('./data/train_hq/')
 dir_mask = Path('./data/train_masks/')
 
 def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
-                learning_rate: float = 1e-4, val_percent: float = 0.1, newsize = [960, 640]):
+                learning_rate: float = 1e-4, val_percent: float = 0.1):
 
     model.cuda()
 
     # 1. Create dataset
+    newsize = [960, 640]
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, newsize)
         logging.info(f'Carvana Dataset')
@@ -86,11 +87,12 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
 
 
 def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
-            learning_rate: float = 1e-4, val_percent: float = 0.1, newsize = [960, 640]):
+            learning_rate: float = 1e-4, val_percent: float = 0.1):
     
     model = DP(model, device_ids=[0, 1])
 
     # 1. Create dataset
+    newsize = [960, 640]
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, newsize)
         logging.info(f'Carvana Dataset')
@@ -153,7 +155,7 @@ def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
 
 
 def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
-            learning_rate: float = 1e-4, val_percent: float = 0.1, newsize = [960, 640]):
+            learning_rate: float = 1e-4, val_percent: float = 0.1):
     
     # Initialize the distributed environment
     os.environ['MASTER_ADDR'] = '127.0.0.1'
@@ -161,6 +163,7 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
     dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
 
     # Create dataset
+    newsize = [960, 640]
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, newsize)
         logging.info(f'Carvana Dataset')
@@ -178,7 +181,7 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
     train_loader = DataLoader(dataset, batch_size=batch_size/world_size, shuffle=False, sampler=train_sampler)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4, drop_last=True, pin_memory=True)
 
-    # Model
+    # Send model to the correspoding GPU
     model.cuda(rank)
     model = DDP(model, device_ids=[rank])
 
@@ -209,10 +212,10 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
 
             global_step += 1
 
-        if global_step % 10 == 0 and rank == 0:
-            mean_loss = np.mean(losses[-10:])
-            #print(f' At step {global_step}, the training loss is {mean_loss}.')
-            train_losses.append([global_step, mean_loss])
+            if global_step % 10 == 0 and rank == 0:
+                mean_loss = np.mean(losses[-10:])
+                #print(f' At step {global_step}, the training loss is {mean_loss}.')
+                train_losses.append([global_step, mean_loss])
 
         if rank == 0:
             # Evaluate after each epoch
