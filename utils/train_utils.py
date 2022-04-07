@@ -20,7 +20,7 @@ dir_img = Path('./data/train_hq/')
 dir_mask = Path('./data/train_masks/')
 
 def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
-                learning_rate: float = 1e-4, val_percent: float = 0.1):
+                learning_rate: float = 1e-4, val_percent: float = 10.0):
 
     model.cuda()
 
@@ -34,7 +34,7 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         logging.info(f'Basic Dataset')
 
     # 2. Split into train/validation partitions
-    n_val = int(len(dataset) * val_percent)
+    n_val = int(len(dataset) * val_percent/100)
     n_train = len(dataset) - n_val
     train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
 
@@ -106,7 +106,7 @@ def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         logging.info(f'Basic Dataset')
 
     # 2. Split into train/validation partitions
-    n_val = int(len(dataset) * val_percent)
+    n_val = int(len(dataset) * val_percent/100)
     n_train = len(dataset) - n_val
     train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
 
