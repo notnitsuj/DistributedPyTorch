@@ -171,24 +171,26 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
     os.environ['MASTER_PORT'] = '29500'
     dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
 
-    # Create dataset
-    newsize = [960, 640]
-    try:
-        dataset = CarvanaDataset(dir_img, dir_mask, newsize)
-        logging.info(f'Carvana Dataset')
-    except (AssertionError, RuntimeError):
-        dataset = BasicDataset(dir_img, dir_mask, newsize)
-        logging.info(f'Basic Dataset')
+    if rank == 0:
+        # Create dataset
+        newsize = [960, 640]
+        try:
+            dataset = CarvanaDataset(dir_img, dir_mask, newsize)
+            logging.info(f'Carvana Dataset')
+        except (AssertionError, RuntimeError):
+            dataset = BasicDataset(dir_img, dir_mask, newsize)
+            logging.info(f'Basic Dataset')
 
-    # 2. Split into train/validation partitions
-    n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator())
+        # 2. Split into train/validation partitions
+        n_val = int(len(dataset) * val_percent)
+        n_train = len(dataset) - n_val
+        train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator())
 
-    # Data Loader
-    train_sampler = DistributedSampler(train_set, rank=rank, num_replicas=world_size)
-    train_loader = DataLoader(dataset, batch_size=batch_size/world_size, shuffle=False, sampler=train_sampler)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4, drop_last=True, pin_memory=True)
+        # Data Loader
+        train_sampler = DistributedSampler(train_set, rank=rank, num_replicas=world_size)
+        train_loader = DataLoader(dataset, batch_size=batch_size/world_size, shuffle=False, sampler=train_sampler)
+        val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4, drop_last=True, pin_memory=True)
+    dist.barrier()
 
     # Send model to the correspoding GPU
     model.cuda(rank)
