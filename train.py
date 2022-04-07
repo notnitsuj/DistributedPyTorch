@@ -1,9 +1,6 @@
 import argparse
-from ctypes.wintypes import WORD
 import logging
 import warnings
-import sys
-import pandas as pd
 
 import torch
 import torch.multiprocessing as mp
@@ -28,29 +25,6 @@ def get_args():
     return parser.parse_args()
 
 
-def train(model, train_method: str, criterion, epochs=10, batch_size=4, 
-            learning_rate=1e-4, val_percent=0.1, newsize=[960, 640]):      
-    try:
-        if train_method == 'singleGPU':
-            model, train_losses, val_losses = fit_1GPU(model, criterion=criterion, epochs=epochs, batch_size=batch_size, 
-                                                        learning_rate=learning_rate, val_percent=val_percent, newsize=newsize)
-        elif train_method == 'DP':
-            model, train_losses, val_losses = fit_DP(model, criterion=criterion, epochs=epochs, batch_size=batch_size, 
-                                                        learning_rate=learning_rate, val_percent=val_percent, newsize=newsize)
-        elif train_method == 'DDP':
-            mp.spawn(fit_DDP, args=(2, 'nccl', model, criterion, epochs, batch_size, learning_rate, val_percent, newsize,),
-                        nprocs=2, join=True)
-        
-        torch.save(model.state_dict(), f"./checkpoints/{args.train_method}.pth")
-        train_losses_df = pd.DataFrame(train_losses, columns=['Step', 'Loss'])
-        train_losses_df.to_pickle(f"./loss/{args.train_method}/train_loss.pkl")
-        val_losses_df = pd.DataFrame(val_losses, columns=['Step', 'Loss'])
-        val_losses_df.to_pickle(f"./loss/{args.train_method}/val_loss.pkl")
-    except:
-        torch.save(model.state_dict(), f"./checkpoints/{args.train_method}_INTERRUPTED.pth")
-        logging.info('Interrupt saved')
-        sys.exit(0)
-
 WORLD_SIZE = torch.cuda.device_count()
 BACKEND = 'nccl'
 
@@ -63,6 +37,8 @@ if __name__ == '__main__':
     logging.info(f"Net for Carvana Image Masking (Segmentation)")
     
     model = UNet()
+    if args.checkpoint is not None:
+        model.load_state_dict(torch.load(f"checkpoints\{args.checkpoint}.pth"))
     criterion = Loss()
 
     if args.train_method == 'singleGPU':
@@ -70,9 +46,14 @@ if __name__ == '__main__':
         logging.info(f"Using {device} for single-GPU training.")
         fit_1GPU(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
                     learning_rate=args.lr, val_percent=args.validation)
-
     else:
         assert WORLD_SIZE >= 2, f"Requires at least 2 GPUs to run, but got {WORLD_SIZE}"
 
-        mp.spawn(fit_DDP, args=(WORLD_SIZE, BACKEND, model, criterion, args.epochs, args.batch_size, args.lr, args.validation,),
-                        nprocs=WORLD_SIZE, join=True)
+        if args.train_method == 'DP':
+            fit_DP(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
+                    learning_rate=args.lr, val_percent=args.validation, device_ids=[i for i in range(WORLD_SIZE)])
+        elif args.train_method == 'DDP':
+            mp.spawn(fit_DDP, args=(WORLD_SIZE, BACKEND, model, criterion, args.epochs, args.batch_size, args.lr, args.validation,),
+                            nprocs=WORLD_SIZE, join=True)
+        elif args.train_method == 'MP':
+            pass

@@ -1,10 +1,11 @@
 import numpy as np
-import torch
+import pandas as pd
 import os
 import tqdm
 import logging
 from pathlib import Path
 
+import torch
 from torch import optim
 from torch.nn import Module
 import torch.distributed as dist
@@ -83,13 +84,17 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         #print(f' After {epoch} epoch, the validation loss is {val_loss}.')
         scheduler.step(val_loss)
 
-    return model, train_losses, val_losses
+    torch.save(model.state_dict(), f"./checkpoints/singleGPU.pth")
+    train_losses_df = pd.DataFrame(train_losses, columns=['Step', 'Loss'])
+    train_losses_df.to_pickle(f"./loss/singleGPU/train_loss.pkl")
+    val_losses_df = pd.DataFrame(val_losses, columns=['Step', 'Loss'])
+    val_losses_df.to_pickle(f"./loss/singleGPU/val_loss.pkl")
 
 
 def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
-            learning_rate: float = 1e-4, val_percent: float = 0.1):
+            learning_rate: float = 1e-4, val_percent: float = 0.1, device_ids: list = [0, 1]):
     
-    model = DP(model, device_ids=[0, 1])
+    model = DP(model, device_ids=device_ids)
 
     # 1. Create dataset
     newsize = [960, 640]
@@ -151,7 +156,11 @@ def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         #print(f' After {epoch} epoch, the validation loss is {val_loss}.')
         scheduler.step(val_loss)
 
-    return model, train_losses, val_losses
+    torch.save(model.state_dict(), f"./checkpoints/DP.pth")
+    train_losses_df = pd.DataFrame(train_losses, columns=['Step', 'Loss'])
+    train_losses_df.to_pickle(f"./loss/DP/train_loss.pkl")
+    val_losses_df = pd.DataFrame(val_losses, columns=['Step', 'Loss'])
+    val_losses_df.to_pickle(f"./loss/DP/val_loss.pkl")
 
 
 def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
@@ -223,3 +232,10 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
             val_losses.append([global_step, val_loss])
             #print(f' After {epoch} epoch, the validation loss is {val_loss}.')
             scheduler.step(val_loss)
+    
+    if rank == 0:
+        torch.save(model.state_dict(), f"./checkpoints/DDP.pth")
+        train_losses_df = pd.DataFrame(train_losses, columns=['Step', 'Loss'])
+        train_losses_df.to_pickle(f"./loss/DDP/train_loss.pkl")
+        val_losses_df = pd.DataFrame(val_losses, columns=['Step', 'Loss'])
+        val_losses_df.to_pickle(f"./loss/DDP/val_loss.pkl")
