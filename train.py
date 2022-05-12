@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument('--learning-rate', '--lr', type=float, default=1e-4, help='Learning rate', dest='lr')
     parser.add_argument('--batch-size', '-b', type=int, default=4, help='Batch size')
     parser.add_argument('--checkpoint', '-c', type=str, default=None, help='File name of the checkpoint to load')
+    parser.add_argument('--seed', '-s', type=int, default=42, help='Set seed for reproducibility')
 
     return parser.parse_args()
 
@@ -56,4 +57,16 @@ if __name__ == '__main__':
             mp.spawn(fit_DDP, args=(WORLD_SIZE, BACKEND, model, criterion, args.epochs, args.batch_size, args.lr, args.validation,),
                             nprocs=WORLD_SIZE, join=True)
         elif args.train_method == 'MP':
-            pass
+            from torch.distributed import rpc
+            import tempfile
+            tmpfile = tempfile.NamedTemporaryFile()
+            rpc.init_rpc(
+                name="worker",
+                rank=0,
+                world_size=1,
+                rpc_backend_options=rpc.TensorPipeRpcBackendOptions(
+                    init_method="file://{}".format(tmpfile.name),
+                    _transports=["ibv", "uv"],
+                    _channels=["cuda_ipc", "cuda_basic"],
+                )
+            )

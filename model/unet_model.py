@@ -2,7 +2,7 @@ from .unet_parts import *
 
 
 class UNet(nn.Module):
-    def __init__(self):
+    def __init__(self, pipe=False):
         super().__init__()
         self.encoder = Encoder()
         self.mid = conv_block(256, 512)
