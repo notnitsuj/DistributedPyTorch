@@ -31,11 +31,11 @@ BACKEND = 'nccl'
 
 if __name__ == '__main__':
     args = get_args()
-    set_seed(42)
+    set_seed(args.seed)
 
     logging.basicConfig(filename=f"./logs/{args.train_method}.log", filemode='a', 
                         level=logging.INFO, format='%(message)s')
-    logging.info(f"Net for Carvana Image Masking (Segmentation)")
+    logging.info(f"UNet for Carvana Image Masking (Segmentation)")
     
     model = UNet()
     if args.checkpoint is not None:
