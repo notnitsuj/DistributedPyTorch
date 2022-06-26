@@ -58,8 +58,8 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             mean_loss = 0
             for batch in train_loader:
-                images = batch['image'].cuda().dtype(torch.float32)
-                true_masks = batch['mask'].cuda().dtype(torch.float32)
+                images = batch['image'].cuda().to(torch.float32)
+                true_masks = batch['mask'].cuda().to(torch.float32)
 
                 pred_masks = model(images)
                 loss = criterion(pred_masks, true_masks) 
@@ -130,8 +130,8 @@ def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             mean_loss = 0
             for batch in train_loader:
-                images = batch['image'].cuda().dtype(torch.float32)
-                true_masks = batch['mask'].cuda().dtype(torch.float32)
+                images = batch['image'].cuda().to(torch.float32)
+                true_masks = batch['mask'].cuda().to(torch.float32)
 
                 pred_masks = model(images)
                 loss = criterion(pred_masks, true_masks) 
@@ -209,8 +209,8 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
         losses = []
 
         for batch in train_loader:
-            images = batch['image'].cuda().dtype(torch.float32)
-            true_masks = batch['mask'].cuda().dtype(torch.float32)
+            images = batch['image'].cuda().to(torch.float32)
+            true_masks = batch['mask'].cuda().to(torch.float32)
 
             pred_masks = model(images)
             loss = criterion(pred_masks, true_masks) 
