@@ -46,15 +46,15 @@ if __name__ == '__main__':
         device = torch.device('cuda')
         logging.info(f"Using {device} for single-GPU training.")
         fit_1GPU(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
-                    learning_rate=args.lr, val_percent=args.validation)
+                    learning_rate=args.lr, val_percent=args.val)
     else:
         assert WORLD_SIZE >= 2, f"Requires at least 2 GPUs to run, but got {WORLD_SIZE}"
 
         if args.train_method == 'DP':
             fit_DP(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
-                    learning_rate=args.lr, val_percent=args.validation, device_ids=[i for i in range(WORLD_SIZE)])
+                    learning_rate=args.lr, val_percent=args.val, device_ids=[i for i in range(WORLD_SIZE)])
         elif args.train_method == 'DDP':
-            mp.spawn(fit_DDP, args=(WORLD_SIZE, BACKEND, model, criterion, args.epochs, args.batch_size, args.lr, args.validation,),
+            mp.spawn(fit_DDP, args=(WORLD_SIZE, BACKEND, model, criterion, args.epochs, args.batch_size, args.lr, args.val,),
                             nprocs=WORLD_SIZE, join=True)
         elif args.train_method == 'MP':
             from torch.distributed import rpc
