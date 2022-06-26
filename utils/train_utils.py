@@ -13,7 +13,7 @@ from torch.nn.parallel import DataParallel as DP, DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 
 from torch.utils.data import DataLoader, random_split
-from dataloading import CarvanaDataset, BasicDataset
+from utils.dataloading import CarvanaDataset, BasicDataset
 from evaluate import evaluate
 
 dir_img = Path('./data/train_hq/')
