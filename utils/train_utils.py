@@ -59,7 +59,7 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
             mean_loss = 0
             for batch in train_loader:
                 images = batch['image'].cuda().to(torch.float32)
-                true_masks = batch['mask'].cuda().to(torch.float32)
+                true_masks = batch['mask'].cuda().to(torch.float32).unsqueeze(1)
 
                 pred_masks = model(images)
                 loss = criterion(pred_masks, true_masks) 
@@ -210,7 +210,7 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
 
         for batch in train_loader:
             images = batch['image'].cuda().to(torch.float32)
-            true_masks = batch['mask'].cuda().to(torch.float32)
+            true_masks = batch['mask'].cuda().to(torch.float32).unsqueeze(1)
 
             pred_masks = model(images)
             loss = criterion(pred_masks, true_masks) 

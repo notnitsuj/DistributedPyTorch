@@ -11,7 +11,7 @@ def evaluate(model, dataloader, criterion):
     # Iterate over the validation set
     for batch in tqdm(dataloader, total=num_val_batches, desc='Validation round', unit='batch'):
         images = batch['image'].cuda().to(torch.float32)
-        true_masks = batch['mask'].cuda().to(torch.float32)
+        true_masks = batch['mask'].cuda().to(torch.float32).unsqueeze(1)
 
         with torch.no_grad():
           pred_masks = model(images)
