@@ -22,7 +22,7 @@ dir_mask = Path('./data/train_masks/')
 def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
                 learning_rate: float = 1e-4, val_percent: float = 10.0):
 
-    model.cuda()
+    model.cuda(0)
 
     # 1. Create dataset
     newsize = [960, 640]
@@ -58,8 +58,8 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             mean_loss = 0
             for batch in train_loader:
-                images = batch['image'].cuda().to(torch.float32)
-                true_masks = batch['mask'].cuda().to(torch.float32).unsqueeze(1)
+                images = batch['image'].cuda(0).to(torch.float32)
+                true_masks = batch['mask'].cuda(0).to(torch.float32).unsqueeze(1)
 
                 pred_masks = model(images)
                 loss = criterion(pred_masks, true_masks) 
