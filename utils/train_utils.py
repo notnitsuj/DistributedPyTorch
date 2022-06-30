@@ -79,7 +79,7 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
                     train_losses.append([global_step, mean_loss])
 
         # Evaluate after each epoch
-        val_loss = evaluate(model, dataloader=val_loader)
+        val_loss = evaluate(model, dataloader=val_loader, criterion=criterion)
         val_losses.append([global_step, val_loss])
         #print(f' After {epoch} epoch, the validation loss is {val_loss}.')
         scheduler.step(val_loss)
@@ -151,7 +151,7 @@ def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
                     train_losses.append([global_step, mean_loss])
 
         # Evaluate after each epoch
-        val_loss = evaluate(model, dataloader=val_loader)
+        val_loss = evaluate(model, dataloader=val_loader, criterion=criterion)
         val_losses.append([global_step, val_loss])
         #print(f' After {epoch} epoch, the validation loss is {val_loss}.')
         scheduler.step(val_loss)
@@ -230,7 +230,7 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
 
         if rank == 0:
             # Evaluate after each epoch
-            val_loss = evaluate(model, dataloader=val_loader)
+            val_loss = evaluate(model, dataloader=val_loader, criterion=criterion)
             val_losses.append([global_step, val_loss])
             #print(f' After {epoch} epoch, the validation loss is {val_loss}.')
             scheduler.step(val_loss)
