@@ -39,7 +39,7 @@ def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
     train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
 
     # 3. Create data loader
-    loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)
+    loader_args = dict(batch_size=batch_size, num_workers=1, pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
@@ -111,7 +111,7 @@ def fit_DP(model: Module, criterion, epochs: int = 10, batch_size: int = 4,
     train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
 
     # 3. Create data loader
-    loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)
+    loader_args = dict(batch_size=batch_size, num_workers=1, pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
@@ -189,7 +189,7 @@ def fit_DDP(rank, world_size, backend, model: Module, criterion, epochs: int = 1
         # Data Loader
         train_sampler = DistributedSampler(train_set, rank=rank, num_replicas=world_size)
         train_loader = DataLoader(dataset, batch_size=batch_size/world_size, shuffle=False, sampler=train_sampler)
-        val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=4, drop_last=True, pin_memory=True)
+        val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=True, pin_memory=True)
     dist.barrier()
 
     # Send model to the correspoding GPU
