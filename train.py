@@ -3,7 +3,7 @@ import logging
 import warnings
 
 import torch
-import torch.multiprocessing as mp
+import torch.distributed as dist
 
 from model import UNet
 from utils.utils import Loss, set_seed
@@ -28,6 +28,7 @@ def get_args():
 
 WORLD_SIZE = torch.cuda.device_count()
 BACKEND = 'nccl'
+INIT_METHOD = 'env://'
 
 if __name__ == '__main__':
     args = get_args()
@@ -54,8 +55,10 @@ if __name__ == '__main__':
             fit_DP(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
                     learning_rate=args.lr, val_percent=args.val, device_ids=[i for i in range(WORLD_SIZE)])
         elif args.train_method == 'DDP':
-            mp.spawn(fit_DDP, args=(WORLD_SIZE, BACKEND, model, criterion, args.epochs, args.batch_size, args.lr, args.val,),
-                            nprocs=WORLD_SIZE, join=True)
+            dist.init_process_group(backend=BACKEND, init_method=INIT_METHOD)
+            fit_DDP(world_size=WORLD_SIZE, model=model, criterion=criterion, epochs=args.epochs,
+                    batch_size=args.batch_size, learning_rate=args.lr, val_percent=args.val)
+            dist.destroy_process_group()
         elif args.train_method == 'MP':
             from torch.distributed import rpc
             import tempfile
