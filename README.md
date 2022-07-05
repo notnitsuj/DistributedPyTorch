@@ -2,10 +2,17 @@
 
 This repo contains the source code for the course project of Parallel Computing. The main purpose of this repo is to train UNet using different distributed strategies from PyTorch (`DataParallel`, `DistributedDataParallel`, and `Pipeline`).
 
-## Install the packages
+## Set up environment and install packages
 
 ```
-pip3 install -r requirements.txt
+conda create -n unetdist
+conda activate unetdist
+```
+
+```
+git clone https://github.com/notnitsuj/DistributedPyTorch.git
+cd DistributedPyTorch
+bash install.sh
 ```
 
 ## Train
