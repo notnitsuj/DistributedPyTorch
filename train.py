@@ -7,7 +7,7 @@ import torch.distributed as dist
 
 from model import UNet
 from utils.utils import Loss, set_seed
-from utils.train_utils import fit_1GPU, fit_DP, fit_DDP
+from utils.train_utils import fit, fit_DP, fit_DDP
 
 warnings.filterwarnings("ignore")
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
                         level=logging.INFO, format='%(message)s')
     logging.info(f"UNet for Carvana Image Masking (Segmentation)")
     
-    model = UNet()
+    model = UNet(pipe=True) if args.train_method == 'MP' else UNet()
     if args.checkpoint is not None:
         model.load_state_dict(torch.load(f"checkpoints\{args.checkpoint}.pth"))
     criterion = Loss()
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     if args.train_method == 'singleGPU':
         device = torch.device('cuda')
         logging.info(f"Using {device} for single-GPU training.")
-        fit_1GPU(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
+        fit(model=model.cuda(0), criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
                     learning_rate=args.lr, val_percent=args.val)
     else:
         assert WORLD_SIZE >= 2, f"Requires at least 2 GPUs to run, but got {WORLD_SIZE}"
@@ -60,16 +60,5 @@ if __name__ == '__main__':
                     batch_size=args.batch_size, learning_rate=args.lr, val_percent=args.val)
             dist.destroy_process_group()
         elif args.train_method == 'MP':
-            from torch.distributed import rpc
-            import tempfile
-            tmpfile = tempfile.NamedTemporaryFile()
-            rpc.init_rpc(
-                name="worker",
-                rank=0,
-                world_size=1,
-                rpc_backend_options=rpc.TensorPipeRpcBackendOptions(
-                    init_method="file://{}".format(tmpfile.name),
-                    _transports=["ibv", "uv"],
-                    _channels=["cuda_ipc", "cuda_basic"],
-                )
-            )
+            fit(model=model, criterion=criterion, epochs=args.epochs, batch_size=args.batch_size, 
+                    learning_rate=args.lr, val_percent=args.val)

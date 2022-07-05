@@ -19,10 +19,8 @@ from evaluate import evaluate
 dir_img = Path('./data/train_hq/')
 dir_mask = Path('./data/train_masks/')
 
-def fit_1GPU(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
+def fit(model: Module, criterion, epochs: int = 10, batch_size: int = 4, 
                 learning_rate: float = 1e-4, val_percent: float = 10.0):
-
-    model.cuda(0)
 
     # 1. Create dataset
     newsize = [960, 640]
