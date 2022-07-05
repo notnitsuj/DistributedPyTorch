@@ -15,6 +15,8 @@ cd DistributedPyTorch
 bash install.sh
 ```
 
+[Download](https://drive.google.com/drive/folders/1ZR3wnSVMZTkcV0D4yqNLM-2ek1j_zCTG?usp=sharing) the data and unzip into the `data` folder.
+
 ## Train
 
 To train normally with one GPU, run
